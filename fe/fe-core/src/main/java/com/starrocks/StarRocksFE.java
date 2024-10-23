@@ -32,6 +32,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
+// comment to test workflow
+
 package com.starrocks;
 
 import com.google.common.base.Charsets;
