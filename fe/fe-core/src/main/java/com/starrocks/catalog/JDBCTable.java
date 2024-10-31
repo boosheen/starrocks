@@ -20,6 +20,7 @@ import com.google.gson.annotations.SerializedName;
 import com.starrocks.analysis.DescriptorTable;
 import com.starrocks.catalog.Resource.ResourceType;
 import com.starrocks.common.DdlException;
+import com.starrocks.qe.ConnectContext;
 import com.starrocks.server.GlobalStateMgr;
 import com.starrocks.thrift.TJDBCTable;
 import com.starrocks.thrift.TTableDescriptor;
@@ -212,30 +213,34 @@ public class JDBCTable extends Table {
             tJDBCTable.setJdbc_driver_checksum(resource.getProperty(JDBCResource.CHECK_SUM));
             tJDBCTable.setJdbc_driver_class(resource.getProperty(JDBCResource.DRIVER_CLASS));
 
-            tJDBCTable.setJdbc_url(resource.getProperty(JDBCResource.URI));
+            String jdbcUri = resource.getProperty(JDBCResource.URI);
+            jdbcUri = getJdbcStringWithSessionVariables(jdbcUri);
+            tJDBCTable.setJdbc_url(jdbcUri);
+
             tJDBCTable.setJdbc_table(jdbcTable);
             tJDBCTable.setJdbc_user(resource.getProperty(JDBCResource.USER));
             tJDBCTable.setJdbc_passwd(resource.getProperty(JDBCResource.PASSWORD));
         } else {
-            String uri = properties.get(JDBCResource.URI);
-            String driverName = buildCatalogDriveName(uri);
+            String jdbcUri = properties.get(JDBCResource.URI);
+            String driverName = buildCatalogDriveName(jdbcUri);
             tJDBCTable.setJdbc_driver_name(driverName);
             tJDBCTable.setJdbc_driver_url(properties.get(JDBCResource.DRIVER_URL));
             tJDBCTable.setJdbc_driver_checksum(properties.get(JDBCResource.CHECK_SUM));
             tJDBCTable.setJdbc_driver_class(properties.get(JDBCResource.DRIVER_CLASS));
-
             if (properties.get(JDBC_TABLENAME) != null) {
-                tJDBCTable.setJdbc_url(uri);
+                tJDBCTable.setJdbc_url(jdbcUri);
             } else {
-                int delimiterIndex = uri.indexOf("?");
+                int delimiterIndex = jdbcUri.indexOf("?");
                 if (delimiterIndex > 0) {
-                    String urlPrefix = uri.substring(0, delimiterIndex);
-                    String urlSuffix = uri.substring(delimiterIndex + 1);
-                    tJDBCTable.setJdbc_url(urlPrefix + "/" + dbName + "?" + urlSuffix);
+                    String urlPrefix = jdbcUri.substring(0, delimiterIndex);
+                    String urlSuffix = jdbcUri.substring(delimiterIndex + 1);
+                    jdbcUri = urlPrefix + "/" + dbName + "?" + urlSuffix;
                 } else {
-                    tJDBCTable.setJdbc_url(uri + "/" + dbName);
+                    jdbcUri = jdbcUri + "/" + dbName;
                 }
             }
+            jdbcUri = getJdbcStringWithSessionVariables(jdbcUri);
+            tJDBCTable.setJdbc_url(jdbcUri);
             tJDBCTable.setJdbc_table(jdbcTable);
             tJDBCTable.setJdbc_user(properties.get(JDBCResource.USER));
             tJDBCTable.setJdbc_passwd(properties.get(JDBCResource.PASSWORD));
@@ -247,21 +252,40 @@ public class JDBCTable extends Table {
         return tTableDescriptor;
     }
 
+    private String getJdbcStringWithSessionVariables(String jdbcUri) {
+        String jdbcUriWithSessionVariables = jdbcUri;
+        String jdbcSessionVariables = ConnectContext.get().getSessionVariable().getJdbcSessionVariables();
+        if (!jdbcSessionVariables.isEmpty()) {
+            if (getProtocolType(jdbcUri) == ProtocolType.MYSQL) {
+                StringBuilder uriBuilder = new StringBuilder(jdbcUri);
+                if (jdbcUri.contains("?")) {
+                    uriBuilder.append("&sessionVariables=");
+                } else {
+                    uriBuilder.append("?sessionVariables=");
+                }
+                uriBuilder.append(jdbcSessionVariables);
+                jdbcUriWithSessionVariables = uriBuilder.toString();
+            } else {
+                throw new UnsupportedOperationException("Only mysql protocol currently supports session variable propagation via JDBC");
+            }
+        }
+        return jdbcUriWithSessionVariables;
+    }
+
     @Override
     public boolean isSupported() {
         return true;
     }
 
-    public ProtocolType getProtocolType() {
-        String uri = properties.get(JDBCResource.URI);
-        if (StringUtils.isEmpty(uri)) {
+    public ProtocolType getProtocolType(String jdbcUriAsString) {
+        if (StringUtils.isEmpty(jdbcUriAsString)) {
             return ProtocolType.UNKNOWN;
         }
-        URI u = URI.create(uri);
+        URI u = URI.create(jdbcUriAsString);
         String protocol = u.getSchemeSpecificPart();
         List<String> slices = Splitter.on(":").splitToList(protocol);
         if (CollectionUtils.isEmpty(slices) || slices.size() <= 1) {
-            throw new IllegalArgumentException("illegal jdbc uri: " + uri);
+            throw new IllegalArgumentException("illegal jdbc uri: " + jdbcUriAsString);
         }
         protocol = slices.get(0);
 

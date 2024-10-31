@@ -760,6 +760,9 @@ public class SessionVariable implements Serializable, Writable, Cloneable {
     // regexp predicate is less efficient than like predicates.
     public static final String LIKE_PREDICATE_CONSOLIDATE_MIN = "like_predicate_consolidate_min";
 
+    // To propagate JDBC session variables in a JDBC connection string for JDBCTable.
+    public static final String JDBC_SESSION_VARIABLES = "jdbc_session_variables";
+
     public static final List<String> DEPRECATED_VARIABLES = ImmutableList.<String>builder()
             .add(CODEGEN_LEVEL)
             .add(MAX_EXECUTION_TIME)
@@ -2191,6 +2194,9 @@ public class SessionVariable implements Serializable, Writable, Cloneable {
     @VarAttr(name = LIKE_PREDICATE_CONSOLIDATE_MIN)
     private int likePredicateConsolidateMin = 2;
 
+    @VarAttr(name = JDBC_SESSION_VARIABLES)
+    private String jdbcSessionVariables = "";
+
     public int getExprChildrenLimit() {
         return exprChildrenLimit;
     }
@@ -2324,6 +2330,14 @@ public class SessionVariable implements Serializable, Writable, Cloneable {
 
     public boolean isCboUseDBLock() {
         return cboUseDBLock;
+    }
+
+    public void setJdbcSessionVariables(String jdbcSessionVariables) {
+        this.jdbcSessionVariables = jdbcSessionVariables;
+    }
+
+    public String getJdbcSessionVariables() {
+        return jdbcSessionVariables;
     }
 
     @TestOnly
