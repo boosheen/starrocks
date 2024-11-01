@@ -40,7 +40,6 @@ import com.starrocks.catalog.HiveMetaStoreTable;
 import com.starrocks.catalog.IcebergTable;
 import com.starrocks.catalog.Index;
 import com.starrocks.catalog.InternalCatalog;
-import com.starrocks.catalog.JDBCResource;
 import com.starrocks.catalog.JDBCTable;
 import com.starrocks.catalog.ListPartitionInfo;
 import com.starrocks.catalog.MaterializedView;
@@ -914,10 +913,9 @@ public class MaterializedViewAnalyzer {
 
         private void checkPartitionColumnWithBaseJDBCTable(SlotRef slotRef, JDBCTable table) {
             checkPartitionColumnWithBaseTable(slotRef, table.getPartitionColumns(), table.isUnPartitioned());
-            JDBCTable.ProtocolType protocolType = table.getProtocolType(table.getProperty(JDBCResource.URI));
-            if (!SUPPORTED_JDBC_PARTITION_TYPE.contains(protocolType)) {
+            if (!SUPPORTED_JDBC_PARTITION_TYPE.contains(table.getProtocolType())) {
                 throw new SemanticException(String.format("Materialized view PARTITION BY for JDBC %s is not " +
-                        "supported, you could remove the PARTITION BY clause", protocolType));
+                        "supported, you could remove the PARTITION BY clause", table.getProtocolType()));
             }
         }
 

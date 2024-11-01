@@ -266,7 +266,9 @@ public class JDBCTable extends Table {
                 uriBuilder.append(jdbcSessionVariables);
                 jdbcUriWithSessionVariables = uriBuilder.toString();
             } else {
-                throw new UnsupportedOperationException("Only mysql protocol currently supports session variable propagation via JDBC");
+                throw new UnsupportedOperationException(
+                    "Only mysql protocol currently supports session variable propagation via JDBC"
+                );
             }
         }
         return jdbcUriWithSessionVariables;
@@ -275,6 +277,10 @@ public class JDBCTable extends Table {
     @Override
     public boolean isSupported() {
         return true;
+    }
+
+    public ProtocolType getProtocolType() {
+        return getProtocolType(properties.get(JDBCResource.URI));
     }
 
     public ProtocolType getProtocolType(String jdbcUriAsString) {
