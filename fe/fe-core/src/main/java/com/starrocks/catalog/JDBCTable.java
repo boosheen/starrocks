@@ -254,8 +254,9 @@ public class JDBCTable extends Table {
 
     private String getJdbcStringWithSessionVariables(String jdbcUri) {
         String jdbcUriWithSessionVariables = jdbcUri;
-        String jdbcSessionVariables = ConnectContext.get().getSessionVariable().getJdbcSessionVariables();
-        if (!jdbcSessionVariables.isEmpty()) {
+        String jdbcExternalTableSessionVariables =
+                ConnectContext.get().getSessionVariable().getjdbcExternalTableSessionVariables();
+        if (!jdbcExternalTableSessionVariables.isEmpty()) {
             if (getProtocolType(jdbcUri) == ProtocolType.MYSQL) {
                 StringBuilder uriBuilder = new StringBuilder(jdbcUri);
                 if (jdbcUri.contains("?")) {
@@ -263,7 +264,7 @@ public class JDBCTable extends Table {
                 } else {
                     uriBuilder.append("?sessionVariables=");
                 }
-                uriBuilder.append(jdbcSessionVariables);
+                uriBuilder.append(jdbcExternalTableSessionVariables);
                 jdbcUriWithSessionVariables = uriBuilder.toString();
             } else {
                 throw new UnsupportedOperationException(
