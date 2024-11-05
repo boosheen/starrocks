@@ -355,7 +355,7 @@ public class ConnectorPlanTestBase extends PlanTestBase {
         Map<String, String> pgProperties = ImmutableMap.<String, String>builder()
                 .put(JDBCResource.TYPE, "jdbc")
                 .put(JDBCResource.DRIVER_CLASS, "com.postgres.Driver")
-                .put(JDBCResource.URI, "jdbc:postgres://127.0.0.1:3306")
+                .put(JDBCResource.URI, "jdbc:postgresql://127.0.0.1:3306")
                 .put(JDBCResource.USER, "root")
                 .put(JDBCResource.PASSWORD, "123456")
                 .put(JDBCResource.CHECK_SUM, "xxxx")

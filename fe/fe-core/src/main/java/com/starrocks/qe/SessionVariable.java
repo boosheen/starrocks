@@ -811,6 +811,10 @@ public class SessionVariable implements Serializable, Writable, Cloneable {
 
     public static final String ENABLE_PLAN_ADVISOR = "enable_plan_advisor";
 
+    // To propagate JDBC session variables in a JDBC connection string for JDBC External Table.
+    // Currently only supported for MYSQL protocol.
+    public static final String JDBC_EXTERNAL_TABLE_SESSION_VARIABLES = "jdbc_external_table_session_variables";
+
     public static final List<String> DEPRECATED_VARIABLES = ImmutableList.<String>builder()
             .add(CODEGEN_LEVEL)
             .add(MAX_EXECUTION_TIME)
@@ -2200,6 +2204,9 @@ public class SessionVariable implements Serializable, Writable, Cloneable {
 
     @VarAttr(name = CONNECTOR_INCREMENTAL_SCAN_RANGE_SIZE)
     private int connectorIncrementalScanRangeSize = 500;
+
+    @VarAttr(name = JDBC_EXTERNAL_TABLE_SESSION_VARIABLES)
+    private String jdbcExternalTableSessionVariables = "";
 
     public SessionVariableConstants.ChooseInstancesMode getChooseExecuteInstancesMode() {
         return Enums.getIfPresent(SessionVariableConstants.ChooseInstancesMode.class,
@@ -4270,6 +4277,14 @@ public class SessionVariable implements Serializable, Writable, Cloneable {
 
     public void setEnableConnectorIncrementalScanRanges(boolean v) {
         enableConnectorIncrementalScanRanges = v;
+    }
+
+    public void setJdbcExternalTableSessionVariables(String jdbcExternalTableSessionVariables) {
+        this.jdbcExternalTableSessionVariables = jdbcExternalTableSessionVariables;
+    }
+
+    public String getJdbcExternalTableSessionVariables() {
+        return jdbcExternalTableSessionVariables;
     }
 
     // Serialize to thrift object

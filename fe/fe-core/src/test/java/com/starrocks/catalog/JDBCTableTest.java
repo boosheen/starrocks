@@ -19,14 +19,17 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.starrocks.common.DdlException;
 import com.starrocks.common.FeConstants;
+import com.starrocks.qe.ConnectContext;
 import com.starrocks.server.GlobalStateMgr;
 import com.starrocks.thrift.TJDBCTable;
 import com.starrocks.thrift.TTableDescriptor;
 import com.starrocks.thrift.TTableType;
+import com.starrocks.utframe.UtFrameUtils;
 import mockit.Expectations;
 import mockit.Mocked;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -34,13 +37,20 @@ import java.util.List;
 import java.util.Map;
 
 public class JDBCTableTest {
+    private static ConnectContext connectContext;
     private String table;
     private String resourceName;
     private List<Column> columns;
     private Map<String, String> properties;
 
+    @BeforeClass
+    public static void beforeClass() {
+        connectContext = UtFrameUtils.createDefaultCtx();
+    }
+
     @Before
     public void setUp() {
+        connectContext.getSessionVariable().setJdbcExternalTableSessionVariables("");
         table = "table0";
         resourceName = "jdbc0";
 
@@ -66,11 +76,11 @@ public class JDBCTableTest {
         return jdbcProperties;
     }
 
-    private Resource getMockedJDBCResource(String name) throws Exception {
+    private Resource getMockedJDBCResource(String name, String jdbcUri) throws Exception {
         FeConstants.runningUnitTest = true;
         Resource jdbcResource = new JDBCResource(name);
         Map<String, String> resourceProperties = Maps.newHashMap();
-        resourceProperties.put("jdbc_uri", "jdbc_uri");
+        resourceProperties.put("jdbc_uri", jdbcUri);
         resourceProperties.put("user", "user0");
         resourceProperties.put("password", "password0");
         resourceProperties.put("driver_url", "driver_url");
@@ -92,7 +102,7 @@ public class JDBCTableTest {
                 result = resourceMgr;
 
                 resourceMgr.getResource("jdbc0");
-                result = getMockedJDBCResource(resourceName);
+                result = getMockedJDBCResource(resourceName, "jdbc:mysql://127.0.0.1:3306/db0");
             }
         };
         JDBCTable table = new JDBCTable(1000, "jdbc_table", columns, properties);
@@ -112,18 +122,99 @@ public class JDBCTableTest {
                 result = resourceMgr;
 
                 resourceMgr.getResource("jdbc0");
-                result = getMockedJDBCResource(resourceName);
+                result = getMockedJDBCResource(resourceName, "jdbc:mysql://127.0.0.1:3306/db0");
             }
         };
         JDBCTable table = new JDBCTable(1000, "jdbc_table", columns, properties);
         TTableDescriptor tableDescriptor = table.toThrift(null);
 
         // build expected table descriptor
-        JDBCResource resource = (JDBCResource) getMockedJDBCResource("jdbc0");
+        JDBCResource resource = (JDBCResource) getMockedJDBCResource("jdbc0", "jdbc:mysql://127.0.0.1:3306/db0");
         TTableDescriptor expectedDesc =
                 new TTableDescriptor(1000, TTableType.JDBC_TABLE, columns.size(), 0, "jdbc_table", "");
         TJDBCTable expectedTable = new TJDBCTable();
         // we will not compute checksum in ut, so we can skip to setJdbc_driver_checksum
+        expectedTable.setJdbc_driver_name(resource.getName());
+        expectedTable.setJdbc_driver_url(resource.getProperty(JDBCResource.DRIVER_URL));
+        expectedTable.setJdbc_driver_class(resource.getProperty(JDBCResource.DRIVER_CLASS));
+        expectedTable.setJdbc_url(resource.getProperty(JDBCResource.URI));
+        expectedTable.setJdbc_table(this.table);
+        expectedTable.setJdbc_user(resource.getProperty(JDBCResource.USER));
+        expectedTable.setJdbc_passwd(resource.getProperty(JDBCResource.PASSWORD));
+        expectedDesc.setJdbcTable(expectedTable);
+
+        Assert.assertEquals(tableDescriptor, expectedDesc);
+    }
+
+    @Test
+    public void testToThriftBuildsJdbcUrlWithJdbcExternalSessionVariables(@Mocked GlobalStateMgr globalStateMgr,
+                                                                          @Mocked ResourceMgr resourceMgr) throws Exception {
+        // Set jdbcExternalTableSessionVariables
+        connectContext.getSessionVariable().setJdbcExternalTableSessionVariables(
+                "session_variable=val,@user_defined_variable=my_val"
+        );
+        new Expectations() {
+            {
+                GlobalStateMgr.getCurrentState();
+                result = globalStateMgr;
+
+                globalStateMgr.getResourceMgr();
+                result = resourceMgr;
+
+                resourceMgr.getResource("jdbc0");
+                result = getMockedJDBCResource("jdbc0", "jdbc:mysql://127.0.0.1:3306/db0");
+            }
+        };
+
+        JDBCTable table = new JDBCTable(1000, "jdbc_table", columns, properties);
+        TTableDescriptor tableDescriptor = table.toThrift(null);
+
+        // Build expected table descriptor with session variables
+        JDBCResource resource = (JDBCResource) getMockedJDBCResource("jdbc0", "jdbc:mysql://127.0.0.1:3306/db0?sessionVariables=session_variable=val,@user_defined_variable=my_val");
+        TTableDescriptor expectedDesc =
+                new TTableDescriptor(1000, TTableType.JDBC_TABLE, columns.size(), 0, "jdbc_table", "");
+        TJDBCTable expectedTable = new TJDBCTable();
+        expectedTable.setJdbc_driver_name(resource.getName());
+        expectedTable.setJdbc_driver_url(resource.getProperty(JDBCResource.DRIVER_URL));
+        expectedTable.setJdbc_driver_class(resource.getProperty(JDBCResource.DRIVER_CLASS));
+        expectedTable.setJdbc_url(resource.getProperty(JDBCResource.URI));
+        expectedTable.setJdbc_table(this.table);
+        expectedTable.setJdbc_user(resource.getProperty(JDBCResource.USER));
+        expectedTable.setJdbc_passwd(resource.getProperty(JDBCResource.PASSWORD));
+        expectedDesc.setJdbcTable(expectedTable);
+
+        Assert.assertEquals(tableDescriptor, expectedDesc);
+    }
+
+    @Test
+    public void testToThriftBuildsJdbcUrlWithDefinedSessionVariablesAndWithJdbcExternalSessionVariables(
+            @Mocked GlobalStateMgr globalStateMgr, @Mocked ResourceMgr resourceMgr
+    ) throws Exception {
+        // Set jdbcExternalTableSessionVariables
+        connectContext.getSessionVariable().setJdbcExternalTableSessionVariables(
+                "session_variable=val,@user_defined_variable=my_val"
+        );
+        new Expectations() {
+            {
+                GlobalStateMgr.getCurrentState();
+                result = globalStateMgr;
+
+                globalStateMgr.getResourceMgr();
+                result = resourceMgr;
+
+                resourceMgr.getResource("jdbc0");
+                result = getMockedJDBCResource("jdbc0", "jdbc:mysql://127.0.0.1:3306/db0?sessionVariables=my_session_var=val");
+            }
+        };
+
+        JDBCTable table = new JDBCTable(1000, "jdbc_table", columns, properties);
+        TTableDescriptor tableDescriptor = table.toThrift(null);
+
+        // Build expected table descriptor with session variables
+        JDBCResource resource = (JDBCResource) getMockedJDBCResource("jdbc0", "jdbc:mysql://127.0.0.1:3306/db0?sessionVariables=session_variable=val,@user_defined_variable=my_val,my_session_var=val");
+        TTableDescriptor expectedDesc =
+                new TTableDescriptor(1000, TTableType.JDBC_TABLE, columns.size(), 0, "jdbc_table", "");
+        TJDBCTable expectedTable = new TJDBCTable();
         expectedTable.setJdbc_driver_name(resource.getName());
         expectedTable.setJdbc_driver_url(resource.getProperty(JDBCResource.DRIVER_URL));
         expectedTable.setJdbc_driver_class(resource.getProperty(JDBCResource.DRIVER_CLASS));
@@ -168,8 +259,49 @@ public class JDBCTableTest {
         Assert.assertEquals(jdbcTable.getJdbc_passwd(), jdbcProperties.get(JDBCResource.PASSWORD));
     }
 
+    @Test
+    public void testToThriftWithoutResourceAndJdbcExternalTableSessionVariablesSet() throws Exception {
+        // Set jdbcExternalTableSessionVariables value
+        connectContext.getSessionVariable().setJdbcExternalTableSessionVariables(
+                "session_variable=val,@user_defined_variable=val2"
+        );
+
+        String uri = "jdbc:mysql://127.0.0.1:3306";
+        Map<String, String> jdbcProperties = getMockedJDBCProperties(uri);
+        JDBCTable table = new JDBCTable(1000, "jdbc_table", columns, "db0", "catalog0", jdbcProperties);
+        TTableDescriptor tableDescriptor = table.toThrift(null);
+
+        TJDBCTable jdbcTable = tableDescriptor.getJdbcTable();
+        Assert.assertEquals(jdbcTable.getJdbc_url(), "jdbc:mysql://127.0.0.1:3306/db0?sessionVariables=session_variable=val,@user_defined_variable=val2");
+        Assert.assertEquals(jdbcTable.getJdbc_driver_url(), jdbcProperties.get(JDBCResource.DRIVER_URL));
+        Assert.assertEquals(jdbcTable.getJdbc_driver_class(), jdbcProperties.get(JDBCResource.DRIVER_CLASS));
+        Assert.assertEquals(jdbcTable.getJdbc_user(), jdbcProperties.get(JDBCResource.USER));
+        Assert.assertEquals(jdbcTable.getJdbc_passwd(), jdbcProperties.get(JDBCResource.PASSWORD));
+    }
+
+    @Test
+    public void testToThriftWithoutResourceWithParametersAndJdbcExternalTableSessionVariablesSet() throws Exception {
+        // Set jdbcExternalTableSessionVariables value
+        connectContext.getSessionVariable().setJdbcExternalTableSessionVariables(
+                "session_variable=val,@user_defined_variable=val2"
+        );
+
+        String uri = "jdbc:mysql://127.0.0.1:3306?key=value&sessionVariables=@udv=3&key2=value2";
+        Map<String, String> jdbcProperties = getMockedJDBCProperties(uri);
+        JDBCTable table = new JDBCTable(1000, "jdbc_table", columns, "db0", "catalog0", jdbcProperties);
+        TTableDescriptor tableDescriptor = table.toThrift(null);
+
+        TJDBCTable jdbcTable = tableDescriptor.getJdbcTable();
+        Assert.assertEquals(jdbcTable.getJdbc_url(), "jdbc:mysql://127.0.0.1:3306/db0?key=value&sessionVariables=session_variable=val,@user_defined_variable=val2,@udv=3&key2=value2");
+        Assert.assertEquals(jdbcTable.getJdbc_driver_url(), jdbcProperties.get(JDBCResource.DRIVER_URL));
+        Assert.assertEquals(jdbcTable.getJdbc_driver_class(), jdbcProperties.get(JDBCResource.DRIVER_CLASS));
+        Assert.assertEquals(jdbcTable.getJdbc_user(), jdbcProperties.get(JDBCResource.USER));
+        Assert.assertEquals(jdbcTable.getJdbc_passwd(), jdbcProperties.get(JDBCResource.PASSWORD));
+    }
+
+
     @Test(expected = DdlException.class)
-    public void testWithIlegalResourceName(@Mocked GlobalStateMgr globalStateMgr,
+    public void testWithIllegalResourceName(@Mocked GlobalStateMgr globalStateMgr,
                                            @Mocked ResourceMgr resourceMgr) throws Exception {
         new Expectations() {
             {
@@ -188,7 +320,7 @@ public class JDBCTableTest {
     }
 
     @Test(expected = DdlException.class)
-    public void testWithIlegalResourceType(@Mocked GlobalStateMgr globalStateMgr,
+    public void testWithIllegalResourceType(@Mocked GlobalStateMgr globalStateMgr,
                                            @Mocked ResourceMgr resourceMgr) throws Exception {
         new Expectations() {
             {
@@ -277,6 +409,25 @@ public class JDBCTableTest {
         } catch (Exception e) {
             System.out.println(e.getMessage());
             Assert.fail();
+        }
+    }
+
+    @Test
+    public void testToThriftWithExternalTableSessionVariablesFailsForNonMysqlProtocol() throws Exception {
+        // Set jdbcExternalTableSessionVariables value
+        connectContext.getSessionVariable().setJdbcExternalTableSessionVariables(
+                "session_variable=val,@user_defined_variable=val2"
+        );
+
+        try {
+            String uri = "jdbc:postgresql://127.0.0.1:3306";
+            Map<String, String> jdbcProperties = getMockedJDBCProperties(uri);
+            JDBCTable table = new JDBCTable(1000, "jdbc_table", columns, "db0", "catalog0", jdbcProperties);
+            table.toThrift(null);
+        } catch (UnsupportedOperationException e) {
+            Assert.assertEquals(
+                    String.format("POSTGRESQL protocol currently does not support session variable propagation " +
+                            "via JDBC external table. Supported protocols are: MYSQL"), e.getMessage());
         }
     }
 }
