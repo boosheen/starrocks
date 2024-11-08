@@ -152,6 +152,7 @@ Status JDBCDataSource::_create_scanner(RuntimeState* state) {
     scan_ctx.passwd = jdbc_table->jdbc_passwd();
     scan_ctx.sql = get_jdbc_sql(scan_ctx.jdbc_url, jdbc_scan_node.table_name, jdbc_scan_node.columns,
                                 jdbc_scan_node.filters, _read_limit);
+    scan_ctx.jdbc_external_table_session_variables = jdbc_table->jdbc_external_table_session_variables();
     _scanner = _pool->add(new JDBCScanner(scan_ctx, _tuple_desc, _runtime_profile));
 
     RETURN_IF_ERROR(_scanner->open(state));
