@@ -510,14 +510,15 @@ JDBCTableDescriptor::JDBCTableDescriptor(const TTableDescriptor& tdesc)
           _jdbc_table(tdesc.jdbcTable.jdbc_table),
           _jdbc_user(tdesc.jdbcTable.jdbc_user),
           _jdbc_passwd(tdesc.jdbcTable.jdbc_passwd),
-          _jdbc_session_variables(tdesc.jdbcTable.jdbc_session_variables) {}
+          _jdbc_external_table_session_variables(tdesc.jdbcTable.jdbc_external_table_session_variables) {}
 
 std::string JDBCTableDescriptor::debug_string() const {
     std::stringstream out;
     out << "JDBCTable(" << TableDescriptor::debug_string() << " jdbc_driver_name=" << _jdbc_driver_name
         << " jdbc_driver_url=" << _jdbc_driver_url << " jdbc_driver_checksum=" << _jdbc_driver_checksum
         << " jdbc_driver_class=" << _jdbc_driver_class << " jdbc_url=" << _jdbc_url << " jdbc_table=" << _jdbc_table
-        << " jdbc_user=" << _jdbc_user << " jdbc_passwd=" << _jdbc_passwd << "jdbc_session_variables=" << _jdbc_session_variables;
+        << " jdbc_user=" << _jdbc_user << " jdbc_passwd=" << _jdbc_passwd
+        << " jdbc_external_table_session_variables=" << _jdbc_external_table_session_variables;
     return out.str();
 }
 

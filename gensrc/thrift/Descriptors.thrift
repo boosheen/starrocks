@@ -595,7 +595,7 @@ struct TJDBCTable {
     6: optional string jdbc_table
     7: optional string jdbc_user
     8: optional string jdbc_passwd
-    9: optional string jdbc_session_variables
+    9: optional string jdbc_external_table_session_variables
 }
 
 // "Union" of all table types.
