@@ -424,6 +424,7 @@ public:
     const std::string jdbc_table() const { return _jdbc_table; }
     const std::string jdbc_user() const { return _jdbc_user; }
     const std::string jdbc_passwd() const { return _jdbc_passwd; }
+    const std::string jdbc_external_table_session_variables() const { return _jdbc_external_table_session_variables; }
 
 private:
     std::string _jdbc_driver_name;
@@ -435,6 +436,7 @@ private:
     std::string _jdbc_table;
     std::string _jdbc_user;
     std::string _jdbc_passwd;
+    std::string _jdbc_external_table_session_variables;
 };
 
 class TupleDescriptor {

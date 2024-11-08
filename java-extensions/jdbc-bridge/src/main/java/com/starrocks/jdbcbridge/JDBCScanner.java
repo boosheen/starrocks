@@ -28,6 +28,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -84,10 +86,25 @@ public class JDBCScanner {
         classLoader = cacheItem.getClassLoader();
 
         connection = dataSource.getConnection();
+
+        if (isMySQLProtocol()) {
+            String[] sessionAssignments = scanContext.getJdbcExternalTableSessionVariables().split(",");
+            try (Statement sessionStatement = connection.createStatement()) {
+                for (String assignment : sessionAssignments) {
+                    // Directly construct the SQL statement assuming the input is validated
+                    String sql = "SET SESSION " + assignment + ";";
+                    sessionStatement.execute(sql);
+                }
+            } catch (SQLException e) {
+                // TODO update exception type
+                throw new Exception("Error setting session variables", e);
+            }
+        }
+
         connection.setAutoCommit(false);
         statement = connection.prepareStatement(scanContext.getSql(), ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY);
-        if (scanContext.getDriverClassName().toLowerCase(Locale.ROOT).contains("mysql")) {
+        if (isMySQLProtocol()) {
             statement.setFetchSize(Integer.MIN_VALUE);
         } else {
             statement.setFetchSize(scanContext.getStatementFetchSize());
@@ -215,5 +232,9 @@ public class JDBCScanner {
         if (connection != null) {
             connection.close();
         }
+    }
+
+    private Boolean isMySQLProtocol() {
+        return scanContext.getDriverClassName().toLowerCase(Locale.ROOT).contains("mysql");
     }
 }

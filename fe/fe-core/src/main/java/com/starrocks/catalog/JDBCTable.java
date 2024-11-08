@@ -20,6 +20,7 @@ import com.google.gson.annotations.SerializedName;
 import com.starrocks.analysis.DescriptorTable;
 import com.starrocks.catalog.Resource.ResourceType;
 import com.starrocks.common.DdlException;
+import com.starrocks.qe.ConnectContext;
 import com.starrocks.server.GlobalStateMgr;
 import com.starrocks.thrift.TJDBCTable;
 import com.starrocks.thrift.TTableDescriptor;
@@ -236,6 +237,9 @@ public class JDBCTable extends Table {
                     tJDBCTable.setJdbc_url(uri + "/" + dbName);
                 }
             }
+            validateJdbcExternalTableSessionVariables(getProtocolType());
+            tJDBCTable.setJdbc_session_variables(
+                    ConnectContext.get().getSessionVariable().getJdbcExternalTableSessionVariables());
             tJDBCTable.setJdbc_table(jdbcTable);
             tJDBCTable.setJdbc_user(properties.get(JDBCResource.USER));
             tJDBCTable.setJdbc_passwd(properties.get(JDBCResource.PASSWORD));
@@ -247,21 +251,36 @@ public class JDBCTable extends Table {
         return tTableDescriptor;
     }
 
+    private void validateJdbcExternalTableSessionVariables(ProtocolType protocolType) {
+        String jdbcExternalTableSessionVariables =
+                ConnectContext.get().getSessionVariable().getJdbcExternalTableSessionVariables();
+        if (!StringUtils.isEmpty(jdbcExternalTableSessionVariables) && protocolType != ProtocolType.MYSQL) {
+            throw new UnsupportedOperationException(
+                    String.format("%s protocol currently does not support session variable propagation to " +
+                            " JDBC external table. Supported protocols are: MYSQL", protocolType.name()
+                    )
+            );
+        }
+    }
+
     @Override
     public boolean isSupported() {
         return true;
     }
 
     public ProtocolType getProtocolType() {
-        String uri = properties.get(JDBCResource.URI);
-        if (StringUtils.isEmpty(uri)) {
+        return getProtocolType(properties.get(JDBCResource.URI));
+    }
+
+    public ProtocolType getProtocolType(String jdbcUriAsString) {
+        if (StringUtils.isEmpty(jdbcUriAsString)) {
             return ProtocolType.UNKNOWN;
         }
-        URI u = URI.create(uri);
+        URI u = URI.create(jdbcUriAsString);
         String protocol = u.getSchemeSpecificPart();
         List<String> slices = Splitter.on(":").splitToList(protocol);
         if (CollectionUtils.isEmpty(slices) || slices.size() <= 1) {
-            throw new IllegalArgumentException("illegal jdbc uri: " + uri);
+            throw new IllegalArgumentException("illegal jdbc uri: " + jdbcUriAsString);
         }
         protocol = slices.get(0);
 
@@ -275,7 +294,7 @@ public class JDBCTable extends Table {
     public enum ProtocolType {
         UNKNOWN,
         MYSQL,
-        POSTGRES,
+        POSTGRESQL,
         ORACLE,
         MARIADB,
 

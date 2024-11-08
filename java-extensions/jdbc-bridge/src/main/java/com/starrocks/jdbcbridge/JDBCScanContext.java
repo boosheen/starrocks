@@ -20,6 +20,7 @@ public class JDBCScanContext {
     private String user;
     private String password;
     private String sql;
+    private String jdbcExternalTableSessionVariables;
 
     private int statementFetchSize;
     private int connectionPoolSize;
@@ -29,13 +30,15 @@ public class JDBCScanContext {
 
     public JDBCScanContext() {}
     public JDBCScanContext(String driverClassName, String jdbcURL, String user, String password,
-                           String sql, int statementFetchSize, int connectionPoolSize,
+                           String sql, String jdbcExternalTableSessionVariables,
+                           int statementFetchSize, int connectionPoolSize,
                            int minimumIdleConnections, int connectionIdleTimeoutMs, int connectionTimeoutMs) {
         this.driverClassName = driverClassName;
         this.jdbcURL = jdbcURL;
         this.user = user;
         this.password = password;
         this.sql = sql;
+        this.jdbcExternalTableSessionVariables = jdbcExternalTableSessionVariables;
         this.statementFetchSize = statementFetchSize;
         this.connectionPoolSize = connectionPoolSize;
         this.minimumIdleConnections = minimumIdleConnections;
@@ -63,6 +66,10 @@ public class JDBCScanContext {
         this.sql = sql;
     }
 
+    public void setJdbcExternalTableSessionVariables(String jdbcExternalTableSessionVariables) {
+        this.jdbcExternalTableSessionVariables = jdbcExternalTableSessionVariables;
+    }
+
     public void setStatementFetchSize(int statementFetchSize) {
         this.statementFetchSize = statementFetchSize;
     }
@@ -86,6 +93,8 @@ public class JDBCScanContext {
     public String getSql() {
         return sql;
     }
+
+    public String getJdbcExternalTableSessionVariables() { return jdbcExternalTableSessionVariables; }
 
     public int getStatementFetchSize() {
         return statementFetchSize;

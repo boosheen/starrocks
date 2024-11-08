@@ -123,6 +123,8 @@ Status JDBCScanner::_init_jdbc_scan_context(RuntimeState* state) {
     LOCAL_REF_GUARD_ENV(env, passwd);
     jstring sql = env->NewStringUTF(_scan_ctx.sql.c_str());
     LOCAL_REF_GUARD_ENV(env, sql);
+    jstring jdbc_external_table_session_variables =
+            env->NewStringUTF(_scan_ctx.jdbc_external_table_session_variables.c_str());
     int statement_fetch_size = state->chunk_size();
     int connection_pool_size = config::jdbc_connection_pool_size;
     if (UNLIKELY(connection_pool_size <= 0)) {
@@ -141,6 +143,7 @@ Status JDBCScanner::_init_jdbc_scan_context(RuntimeState* state) {
     int connection_timeout_ms =
             state->query_options().__isset.query_timeout ? state->query_options().query_timeout * 1000 : 30 * 1000;
     auto scan_ctx = env->NewObject(scan_context_cls, constructor, driver_class_name, jdbc_url, user, passwd, sql,
+                                   jdbc_external_table_session_variables,
                                    statement_fetch_size, connection_pool_size, minimum_idle_connections,
                                    idle_timeout_ms, connection_timeout_ms);
     _jdbc_scan_context = env->NewGlobalRef(scan_ctx);

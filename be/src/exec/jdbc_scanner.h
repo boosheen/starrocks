@@ -39,6 +39,7 @@ struct JDBCScanContext {
     std::string user;
     std::string passwd;
     std::string sql;
+    std::string jdbc_external_table_session_variables;
     std::map<std::string, std::string> properties;
 };
 
