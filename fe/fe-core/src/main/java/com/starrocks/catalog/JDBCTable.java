@@ -238,7 +238,7 @@ public class JDBCTable extends Table {
                 }
             }
             validateJdbcExternalTableSessionVariables(getProtocolType());
-            tJDBCTable.setJdbc_session_variables(
+            tJDBCTable.setJdbc_external_table_session_variables(
                     ConnectContext.get().getSessionVariable().getJdbcExternalTableSessionVariables());
             tJDBCTable.setJdbc_table(jdbcTable);
             tJDBCTable.setJdbc_user(properties.get(JDBCResource.USER));
