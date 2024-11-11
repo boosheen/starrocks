@@ -2092,27 +2092,6 @@ public class SessionVariable implements Serializable, Writable, Cloneable {
     @VarAttr(name = CHOOSE_EXECUTE_INSTANCES_MODE)
     private String chooseExecuteInstancesMode = LOCALITY.name();
 
-    @VarAttr(name = ENABLE_PREDICATE_MOVE_AROUND)
-    private boolean enablePredicateMoveAround = true;
-
-    @VarAttr(name = CONNECTOR_REMOTE_FILE_ASYNC_QUEUE_SIZE, flag = VariableMgr.INVISIBLE)
-    private int connectorRemoteFileAsyncQueueSize = 1000;
-
-    @VarAttr(name = CONNECTOR_REMOTE_FILE_ASYNC_TASK_SIZE, flag = VariableMgr.INVISIBLE)
-    private int connectorRemoteFileAsyncTaskSize = 4;
-
-    @VarAttr(name = ENABLE_CONNECTOR_INCREMENTAL_SCAN_RANGES)
-    private boolean enableConnectorIncrementalScanRanges = false;
-
-    @VarAttr(name = CONNECTOR_INCREMENTAL_SCAN_RANGE_SIZE)
-    private int connectorIncrementalScanRangeSize = 500;
-
-    @VarAttr(name = ENABLE_PUSH_DOWN_PRE_AGG_WITH_RANK)
-    private boolean enablePushDownPreAggWithRank = true;
-
-    @VarAttr(name = INSERT_LOCAL_SHUFFLE_FOR_WINDOW_PRE_AGG)
-    private boolean insertLocalShuffleForWindowPreAgg = true;
-
     @VarAttr(name = JDBC_EXTERNAL_TABLE_SESSION_VARIABLES)
     private String jdbcExternalTableSessionVariables = "";
 
@@ -4020,82 +3999,6 @@ public class SessionVariable implements Serializable, Writable, Cloneable {
 
     public void setLikePredicateConsolidateMin(int value) {
         this.likePredicateConsolidateMin = value;
-    }
-
-    public String getCustomQueryId() {
-        return customQueryId;
-    }
-
-    public void setCustomQueryId(String customQueryId) {
-        this.customQueryId = customQueryId;
-    }
-
-    public int getConnectorRemoteFileAsyncQueueSize() {
-        return connectorRemoteFileAsyncQueueSize;
-    }
-
-    public int getConnectorRemoteFileAsyncTaskSize() {
-        return connectorRemoteFileAsyncTaskSize;
-    }
-
-    public boolean isEnablePlanAnalyzer() {
-        return enablePlanAnalyzer;
-    }
-
-    public void setEnablePlanAnalyzer(boolean enablePlanAnalyzer) {
-        this.enablePlanAnalyzer = enablePlanAnalyzer;
-    }
-
-    public boolean isEnablePlanAdvisor() {
-        return enablePlanAdvisor;
-    }
-
-    public void setEnablePlanAdvisor(boolean enablePlanAdvisor) {
-        this.enablePlanAdvisor = enablePlanAdvisor;
-    }
-
-    public void setCountDistinctImplementation(String countDistinctImplementation) {
-        this.countDistinctImplementation = countDistinctImplementation;
-    }
-
-    public SessionVariableConstants.CountDistinctImplMode getCountDistinctImplementation() {
-        return SessionVariableConstants.CountDistinctImplMode.parse(countDistinctImplementation);
-    }
-
-    public boolean isEnableCountDistinctRewriteByHllBitmap() {
-        return enableCountDistinctRewriteByHllBitmap;
-    }
-
-    public void setEnableCountDistinctRewriteByHllBitmap(boolean enableCountDistinctRewriteByHllBitmap) {
-        this.enableCountDistinctRewriteByHllBitmap = enableCountDistinctRewriteByHllBitmap;
-    }
-
-    public boolean isDisableGeneratedColumnRewrite() {
-        return disableGeneratedColumnRewrite;
-    }
-
-    public int getConnectorIncrementalScanRangeNumber() {
-        return connectorIncrementalScanRangeSize;
-    }
-
-    public void setConnectorIncrementalScanRangeNumber(int v) {
-        connectorIncrementalScanRangeSize = v;
-    }
-
-    public boolean isEnableConnectorIncrementalScanRanges() {
-        return enableConnectorIncrementalScanRanges;
-    }
-
-    public void setEnableConnectorIncrementalScanRanges(boolean v) {
-        enableConnectorIncrementalScanRanges = v;
-    }
-
-    public boolean getEnablePushDownPreAggWithRank() {
-        return enablePushDownPreAggWithRank;
-    }
-
-    public boolean isInsertLocalShuffleForWindowPreAgg() {
-        return insertLocalShuffleForWindowPreAgg;
     }
 
     public void setJdbcExternalTableSessionVariables(String jdbcExternalTableSessionVariables) {
