@@ -29,6 +29,7 @@
 #include "types/logical_type.h"
 #include "udf/java/java_udf.h"
 #include "util/defer_op.h"
+#include "common/logging.h"
 
 namespace starrocks {
 
@@ -111,7 +112,7 @@ Status JDBCScanner::_init_jdbc_scan_context(RuntimeState* state) {
 
     jmethodID constructor = env->GetMethodID(
             scan_context_cls, "<init>",
-            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IIIII)V");
+            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IIIII)V");
     jstring driver_class_name = env->NewStringUTF(_scan_ctx.driver_class_name.c_str());
     LOCAL_REF_GUARD_ENV(env, driver_class_name);
     jstring jdbc_url = env->NewStringUTF(_scan_ctx.jdbc_url.c_str());
@@ -141,6 +142,15 @@ Status JDBCScanner::_init_jdbc_scan_context(RuntimeState* state) {
     // use query timeout or default value of HikariConfig
     int connection_timeout_ms =
             state->query_options().__isset.query_timeout ? state->query_options().query_timeout * 1000 : 30 * 1000;
+
+    // Log configuration values
+    LOG(INFO) << "Initializing JDBC scan context with the following parameters:"
+              << " driver_class_name: " << _scan_ctx.driver_class_name
+              << ", jdbc_url: " << _scan_ctx.jdbc_url
+              << ", user: " << _scan_ctx.user
+              << ", passwd: [REDACTED]"
+              << ", sql: " << _scan_ctx.sql
+              << ", jdbc_external_table_session_variables: " << _scan_ctx.jdbc_external_table_session_variables;
 
     auto scan_ctx = env->NewObject(scan_context_cls, constructor, driver_class_name, jdbc_url, user, passwd, sql,
                                    jdbc_external_table_session_variables,

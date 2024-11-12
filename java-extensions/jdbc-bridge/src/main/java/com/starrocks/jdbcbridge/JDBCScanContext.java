@@ -94,7 +94,9 @@ public class JDBCScanContext {
         return sql;
     }
 
-    public String getJdbcExternalTableSessionVariables() { return jdbcExternalTableSessionVariables; }
+    public String getJdbcExternalTableSessionVariables() {
+        return jdbcExternalTableSessionVariables;
+    }
 
     public int getStatementFetchSize() {
         return statementFetchSize;

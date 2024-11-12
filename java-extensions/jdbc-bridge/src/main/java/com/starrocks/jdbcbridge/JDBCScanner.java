@@ -87,17 +87,26 @@ public class JDBCScanner {
 
         connection = dataSource.getConnection();
 
-        if (isMySQLProtocol()) {
-            String[] sessionAssignments = scanContext.getJdbcExternalTableSessionVariables().split(",");
+        // Setup session variables if defined
+        String sessionVariables = scanContext.getJdbcExternalTableSessionVariables();
+        if (isMySQLProtocol() && !sessionVariables.isEmpty()) {
+            // Split the input into variableName + variableValue assignments
+            String[] sessionAssignments = sessionVariables.split(",(?=(?:[^']*'[^']*')*[^']*$)");
             try (Statement sessionStatement = connection.createStatement()) {
                 for (String assignment : sessionAssignments) {
-                    // Directly construct the SQL statement assuming the input is validated
-                    String sql = "SET SESSION " + assignment + ";";
+                    assignment = assignment.trim();
+                    int equalIndex = assignment.indexOf('=');
+                    if (equalIndex == -1) {
+                        throw new IllegalArgumentException("Malformed session variable assignment: " + assignment);
+                    }
+                    String variableName = assignment.substring(0, equalIndex).trim();
+                    String variableValue = assignment.substring(equalIndex + 1).trim();
+                    // Set the session variable
+                    String sql = "SET " + variableName + " = " + variableValue + ";";
                     sessionStatement.execute(sql);
                 }
             } catch (SQLException e) {
-                // TODO update exception type
-                throw new Exception("Error setting session variables", e);
+                throw new RuntimeException("Error setting session variables", e);
             }
         }
 

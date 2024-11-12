@@ -37,6 +37,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class JDBCTable extends Table {
     private static final Logger LOG = LogManager.getLogger(JDBCTable.class);
@@ -208,6 +209,9 @@ public class JDBCTable extends Table {
         if (!Strings.isNullOrEmpty(resourceName)) {
             JDBCResource resource =
                     (JDBCResource) (GlobalStateMgr.getCurrentState().getResourceMgr().getResource(resourceName));
+            validateJdbcExternalTableSessionVariables(getProtocolType(resource.getProperty(JDBCResource.URI)));
+            tJDBCTable.setJdbc_external_table_session_variables(
+                    ConnectContext.get().getSessionVariable().getJdbcExternalTableSessionVariables());
             tJDBCTable.setJdbc_driver_name(resource.getName());
             tJDBCTable.setJdbc_driver_url(resource.getProperty(JDBCResource.DRIVER_URL));
             tJDBCTable.setJdbc_driver_checksum(resource.getProperty(JDBCResource.CHECK_SUM));
@@ -220,11 +224,13 @@ public class JDBCTable extends Table {
         } else {
             String uri = properties.get(JDBCResource.URI);
             String driverName = buildCatalogDriveName(uri);
+            validateJdbcExternalTableSessionVariables(getProtocolType());
+            tJDBCTable.setJdbc_external_table_session_variables(
+                    ConnectContext.get().getSessionVariable().getJdbcExternalTableSessionVariables());
             tJDBCTable.setJdbc_driver_name(driverName);
             tJDBCTable.setJdbc_driver_url(properties.get(JDBCResource.DRIVER_URL));
             tJDBCTable.setJdbc_driver_checksum(properties.get(JDBCResource.CHECK_SUM));
             tJDBCTable.setJdbc_driver_class(properties.get(JDBCResource.DRIVER_CLASS));
-
             if (properties.get(JDBC_TABLENAME) != null) {
                 tJDBCTable.setJdbc_url(uri);
             } else {
@@ -237,9 +243,6 @@ public class JDBCTable extends Table {
                     tJDBCTable.setJdbc_url(uri + "/" + dbName);
                 }
             }
-            validateJdbcExternalTableSessionVariables(getProtocolType());
-            tJDBCTable.setJdbc_session_variables(
-                    ConnectContext.get().getSessionVariable().getJdbcExternalTableSessionVariables());
             tJDBCTable.setJdbc_table(jdbcTable);
             tJDBCTable.setJdbc_user(properties.get(JDBCResource.USER));
             tJDBCTable.setJdbc_passwd(properties.get(JDBCResource.PASSWORD));
@@ -251,15 +254,35 @@ public class JDBCTable extends Table {
         return tTableDescriptor;
     }
 
+    private static final Pattern SESSION_VARIABLE_PATTERN = Pattern.compile(
+            "(@'[^']+'|@[A-Za-z0-9_]+)\\s*=\\s*('[^']*'|\\d+)(?:,|$)"
+    );
+
     private void validateJdbcExternalTableSessionVariables(ProtocolType protocolType) {
         String jdbcExternalTableSessionVariables =
                 ConnectContext.get().getSessionVariable().getJdbcExternalTableSessionVariables();
         if (!StringUtils.isEmpty(jdbcExternalTableSessionVariables) && protocolType != ProtocolType.MYSQL) {
             throw new UnsupportedOperationException(
                     String.format("%s protocol currently does not support session variable propagation to " +
-                            " JDBC external table. Supported protocols are: MYSQL", protocolType.name()
+                            "JDBC external table. Supported protocols are: MYSQL", protocolType.name()
                     )
             );
+        }
+        if (!StringUtils.isEmpty(jdbcExternalTableSessionVariables)) {
+            // Split the input into individual assignments
+            String[] assignments = jdbcExternalTableSessionVariables.split(",(?=(?:[^']*'[^']*')*[^']*$)");
+            for (String assignment : assignments) {
+                assignment = assignment.trim();
+                // Match each assignment against the pattern
+                if (!SESSION_VARIABLE_PATTERN.matcher(assignment).matches()) {
+                    throw new IllegalArgumentException("Invalid session variable format for " +
+                            "jdbc_external_table_session_variables. Invalid assignment: " + assignment +
+                            ". Each variable assignment must be in the following format: variable_name='value'. " +
+                            "Supports MySQL system variables or MySQL user defined variables. " +
+                            "Values can be a quoted string or a numeric value. For example: " +
+                            "@my_var='some_value' or my_var=123.");
+                }
+            }
         }
     }
 
