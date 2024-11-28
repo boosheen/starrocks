@@ -760,6 +760,27 @@ public class SessionVariable implements Serializable, Writable, Cloneable {
     // regexp predicate is less efficient than like predicates.
     public static final String LIKE_PREDICATE_CONSOLIDATE_MIN = "like_predicate_consolidate_min";
 
+    // To propagate JDBC session variables in a JDBC connection string for JDBC External Table.
+    // Currently only supported for MYSQL protocol.
+    public static final String JDBC_EXTERNAL_TABLE_SESSION_VARIABLES = "jdbc_external_table_session_variables";
+
+    public static final String CONNECTOR_REMOTE_FILE_ASYNC_QUEUE_SIZE = "connector_remote_file_async_queue_size";
+    public static final String CONNECTOR_REMOTE_FILE_ASYNC_TASK_SIZE = "connector_remote_file_async_task_size";
+    public static final String ENABLE_CONNECTOR_INCREMENTAL_SCAN_RANGES = "enable_connector_incremental_scan_ranges";
+    public static final String CONNECTOR_INCREMENTAL_SCAN_RANGE_SIZE = "connector_incremental_scan_ranges_size";
+    public static final String ENABLE_CONNECTOR_ASYNC_LIST_PARTITIONS = "enable_connector_async_list_partitions";
+    public static final String ENABLE_PLAN_ANALYZER = "enable_plan_analyzer";
+
+    public static final String ENABLE_PLAN_ADVISOR = "enable_plan_advisor";
+
+    public static final String DISABLE_GENERATED_COLUMN_REWRITE = "disable_generated_column_rewrite";
+
+    public static final String ENABLE_PUSH_DOWN_PRE_AGG_WITH_RANK = "enable_push_down_pre_agg_with_rank";
+
+    public static final String INSERT_LOCAL_SHUFFLE_FOR_WINDOW_PRE_AGG = "insert_local_shuffle_for_window_pre_agg";
+
+    public static final String ENABLE_REWRITE_UNNEST_BITMAP_TO_ARRAY = "enable_rewrite_unnest_bitmap_to_array";
+
     public static final List<String> DEPRECATED_VARIABLES = ImmutableList.<String>builder()
             .add(CODEGEN_LEVEL)
             .add(MAX_EXECUTION_TIME)
@@ -2072,6 +2093,33 @@ public class SessionVariable implements Serializable, Writable, Cloneable {
 
     @VarAttr(name = CHOOSE_EXECUTE_INSTANCES_MODE)
     private String chooseExecuteInstancesMode = LOCALITY.name();
+
+    @VarAttr(name = JDBC_EXTERNAL_TABLE_SESSION_VARIABLES)
+    private String jdbcExternalTableSessionVariables = "";
+
+    @VarAttr(name = ENABLE_PREDICATE_MOVE_AROUND)
+    private boolean enablePredicateMoveAround = true;
+
+    @VarAttr(name = CONNECTOR_REMOTE_FILE_ASYNC_QUEUE_SIZE, flag = VariableMgr.INVISIBLE)
+    private int connectorRemoteFileAsyncQueueSize = 1000;
+
+    @VarAttr(name = CONNECTOR_REMOTE_FILE_ASYNC_TASK_SIZE, flag = VariableMgr.INVISIBLE)
+    private int connectorRemoteFileAsyncTaskSize = 4;
+
+    @VarAttr(name = ENABLE_CONNECTOR_INCREMENTAL_SCAN_RANGES)
+    private boolean enableConnectorIncrementalScanRanges = true;
+
+    @VarAttr(name = CONNECTOR_INCREMENTAL_SCAN_RANGE_SIZE)
+    private int connectorIncrementalScanRangeSize = 500;
+
+    @VarAttr(name = ENABLE_CONNECTOR_ASYNC_LIST_PARTITIONS)
+    private boolean enableConnectorAsyncListPartitions = false;
+
+    @VarAttr(name = ENABLE_PUSH_DOWN_PRE_AGG_WITH_RANK)
+    private boolean enablePushDownPreAggWithRank = true;
+
+    @VarAttr(name = INSERT_LOCAL_SHUFFLE_FOR_WINDOW_PRE_AGG)
+    private boolean insertLocalShuffleForWindowPreAgg = true;
 
     public SessionVariableConstants.ChooseInstancesMode getChooseExecuteInstancesMode() {
         return Enums.getIfPresent(SessionVariableConstants.ChooseInstancesMode.class,
@@ -3977,6 +4025,101 @@ public class SessionVariable implements Serializable, Writable, Cloneable {
 
     public void setLikePredicateConsolidateMin(int value) {
         this.likePredicateConsolidateMin = value;
+    }
+
+    public void setJdbcExternalTableSessionVariables(String jdbcExternalTableSessionVariables) {
+        this.jdbcExternalTableSessionVariables = jdbcExternalTableSessionVariables;
+    }
+    public String getJdbcExternalTableSessionVariables() {
+        return jdbcExternalTableSessionVariables;
+    }
+
+    public String getCustomQueryId() {
+        return customQueryId;
+    }
+
+    public void setCustomQueryId(String customQueryId) {
+        this.customQueryId = customQueryId;
+    }
+
+    public int getConnectorRemoteFileAsyncQueueSize() {
+        return connectorRemoteFileAsyncQueueSize;
+    }
+
+    public int getConnectorRemoteFileAsyncTaskSize() {
+        return connectorRemoteFileAsyncTaskSize;
+    }
+
+    public boolean isEnablePlanAnalyzer() {
+        return enablePlanAnalyzer;
+    }
+
+    public void setEnablePlanAnalyzer(boolean enablePlanAnalyzer) {
+        this.enablePlanAnalyzer = enablePlanAnalyzer;
+    }
+
+    public boolean isEnablePlanAdvisor() {
+        return enablePlanAdvisor;
+    }
+
+    public void setEnablePlanAdvisor(boolean enablePlanAdvisor) {
+        this.enablePlanAdvisor = enablePlanAdvisor;
+    }
+
+    public void setCountDistinctImplementation(String countDistinctImplementation) {
+        this.countDistinctImplementation = countDistinctImplementation;
+    }
+
+    public SessionVariableConstants.CountDistinctImplMode getCountDistinctImplementation() {
+        return SessionVariableConstants.CountDistinctImplMode.parse(countDistinctImplementation);
+    }
+
+    public boolean isEnableCountDistinctRewriteByHllBitmap() {
+        return enableCountDistinctRewriteByHllBitmap;
+    }
+
+    public void setEnableCountDistinctRewriteByHllBitmap(boolean enableCountDistinctRewriteByHllBitmap) {
+        this.enableCountDistinctRewriteByHllBitmap = enableCountDistinctRewriteByHllBitmap;
+    }
+
+    public boolean isDisableGeneratedColumnRewrite() {
+        return disableGeneratedColumnRewrite;
+    }
+
+    public int getConnectorIncrementalScanRangeNumber() {
+        return connectorIncrementalScanRangeSize;
+    }
+
+    public void setConnectorIncrementalScanRangeNumber(int v) {
+        connectorIncrementalScanRangeSize = v;
+    }
+
+    public boolean isEnableConnectorIncrementalScanRanges() {
+        return enableConnectorIncrementalScanRanges;
+    }
+
+    public boolean isEnableConnectorAsyncListPartitions() {
+        return enableConnectorAsyncListPartitions;
+    }
+
+    public void setEnableConnectorAsyncListPartitions(boolean v) {
+        enableConnectorAsyncListPartitions = v;
+    }
+
+    public void setEnableConnectorIncrementalScanRanges(boolean v) {
+        enableConnectorIncrementalScanRanges = v;
+    }
+
+    public boolean getEnablePushDownPreAggWithRank() {
+        return enablePushDownPreAggWithRank;
+    }
+
+    public boolean isInsertLocalShuffleForWindowPreAgg() {
+        return insertLocalShuffleForWindowPreAgg;
+    }
+
+    public boolean isEnableRewriteUnnestBitmapToArray() {
+        return enableRewriteUnnestBitmapToArray;
     }
 
     // Serialize to thrift object

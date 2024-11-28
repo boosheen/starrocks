@@ -275,7 +275,7 @@ public class JDBCTable extends Table {
     public enum ProtocolType {
         UNKNOWN,
         MYSQL,
-        POSTGRES,
+        POSTGRESQL,
         ORACLE,
         MARIADB,
 
